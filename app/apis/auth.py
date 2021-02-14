@@ -6,6 +6,11 @@ from app.utils import token_required
 
 api = Namespace("auth", description="")
 
+token_serializer = api.model("token", {
+    "access_token": fields.String(description="Short lived Access Token"),
+    "refresh_token": fields.String(description="Long lived Refresh Token")
+})
+
 create_token_parser = reqparse.RequestParser()
 create_token_parser.add_argument("email", type=str, help="Email of User", location="form")
 # create_token_parser.add_argument()
@@ -23,10 +28,10 @@ password_reset_parser.add_argument("reset_token", type=str, help="Reset Token be
 @api.route("/token")
 class Token(Resource):
     
-    @api.doc(description="Create API Token for User authentication")
-    @api.expect(parser=create_token_parser, validate=True)
-    @api.response(201, "Token created successfully")
-    def post():
+    @api.doc(description="Create API Token for User authentication",)
+    @api.expect(create_token_parser, validate=True)
+    @api.response(201, "Token created successfully", model=token_serializer)
+    def post(self):
         data = create_token_parser.parse_args()
         email = data["email"]
         password = data["password"]
@@ -56,8 +61,8 @@ class Token(Resource):
         200
         
     @api.doc(description="Exchange refresh token for a new access token")
-    @api.expect(parser=refresh_token_parser, validate=True)
-    @api.response(200, "Access Token and Refresh Token refreshed")
+    @api.expect(refresh_token_parser, validate=True)
+    @api.response(200, "Access Token and Refresh Token refreshed", model=token_serializer)
     def put(self):
         args = refresh_token_parser.parse_args()
         
@@ -71,9 +76,17 @@ class Token(Resource):
             return {"error": "API token expired"}, 401
         except jwt.InvalidSignatureError:
             return {"error": "API token is invalid"}, 401
-
         access_token, refresh_token = create_tokens(public_id)
-
+        
+        is_valid = r.exists(f"user:{public_id}-refresh-token")
+        r_refresh_token = r.set(f"temp:{public_id}-refresh-token", refresh_token,
+        	     ex=21_600, nx=True
+        	)
+        r_access_token = r.set(f"temp:{public_id}-access-token", access_token,
+        	     ex=900, nx=True
+        	)
+        if not (r_refresh_token and r_access_token):
+            pass
         return {
             "access_token": access_token,
             "refresh_token": refresh_token_parser
@@ -96,7 +109,7 @@ class Token(Resource):
 class PasswordReset(Resource):
 
     @api.doc(description="Validate User Token for password reset")
-    @api.expect(parser=password_reset_parser, validate=True)
+    @api.expect(password_reset_parser, validate=True)
     @api.response(200, "User Token validated")
     def get(self):
         data = password_reset_parser.parse_args()
@@ -113,7 +126,7 @@ class PasswordReset(Resource):
         return api.marshal(user, ser)
 
     @api.doc(description="Send User a Password Reset email")
-    @api.expect(parser=password_reset_parser, validate=True)
+    @api.expect(password_reset_parser, validate=True)
     @api.response(204, "Password Reset Email sent to User")
     def post(self):
         #create password reset
@@ -126,7 +139,7 @@ class PasswordReset(Resource):
         return 204
 
     @api.doc(description="Save new Password for User")
-    @api.expect(parser=password_reset_parser, validate=True)
+    @api.expect(password_reset_parser, validate=True)
     @api.response(204, "User Password successfully changed")
     def put(self):
         

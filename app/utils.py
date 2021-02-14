@@ -1,4 +1,4 @@
-from functools imoort wraps
+from functools import wraps
 import jwt
 from datetime import datetime, timedelta
 
@@ -41,18 +41,23 @@ def token_required(f):
             public_id = data.get("public_id")
             
         except jwt.ExpiredSignatureError:
+            temp = r.get(f)
             return {"error": "Access token is expired"}, 401
         except jwt.InvalidSignatureError:
             return {"error": "Access token is invalid"}, 401
         
-        is_valid = r.get(f"user:{public_id}-access-token")
-        if not is_valid:
+        r_access_token = r.get(f"user:{public_id}-access-token")
+        if not r_access_token:
             r.delete(f"user:{public_id}-refresh-token")
             #Create security threat
 
             return {"error": "Access token revoked. Please re-authenticate"}, 401
+        
+        if r_access_token != token:
+            te
             
         user = User.query.filter_by(public_id=public_id).first_or_404("User Not Found")
 
         return f(user, *args, **kwargs)
     return decorated
+

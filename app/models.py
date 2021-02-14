@@ -38,9 +38,9 @@ class Profile(db.Model):
     bvn = db.Column(db.String(11))
     nin = db.Column(db.String(11))
     
-    notifications = db.relationship("Notification", lazy="dynamic")
-    devices = db.relationship("Device", lazy="select")
-    stores = db.relationship("Store", lazy="select")
+    notifications = db.relationship("Notification", backref="profile" lazy="dynamic")
+    devices = db.relationship("Device", backref="profile", lazy="select")
+    stores = db.relationship("Store", backref="profile", lazy="select")
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     user = db.relationship("User", back_populates="profile", uselist=False)
@@ -72,11 +72,15 @@ class AppleAccount(db.Model):
     first_name = db.Column(db.String(20))
     last_name = db.Column(db.String(20))
 
+    profile = db.Column(db.Integer, db.ForeignKey("profile.id"))
+
 class GoogleAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(20))
     last_name = db.Column(db.String(20))
     email = db.Column(db.String(80))
+
+    profile = db.Column(db.Integer, db.ForeignKey("profile.id"))
 
 #class FacebookAccount(db.Model):
 #    id = db.Column(db.Integer, primary_key=True)
@@ -93,6 +97,21 @@ class Device(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
     ip_address = db.Column(db.String(15))
+    profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
+
+class Store(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    items = db.relationship("Item", back_populates="store", lazy="dynamic")
+    profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
+    
+class Item(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(60))
+    price = db.Column(db.Integer)
+    store = db.relationship("Store", back_populates="items")
+    profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
+    
     
     
     

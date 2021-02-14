@@ -6,9 +6,9 @@ from app.utils import token_required
 
 api = Namespace("bitcoin", description="")
 
-serializer = api.model("bitcoin", {
+# serializer = api.model("bitcoin", {
 
-})
+# })
 
 parser = reqparse.RequestParser()
 # parser.add_argument()

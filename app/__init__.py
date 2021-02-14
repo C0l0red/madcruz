@@ -11,7 +11,7 @@ def create_app():
     
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite3"
 
-    from .v1 import api as v1
+    from .v1 import blueprint as v1
 
     app.register_blueprint(v1)
 

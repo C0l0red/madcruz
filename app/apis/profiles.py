@@ -5,38 +5,39 @@ from datetime import datetime
 from app.models import db, Profile, User
 from app.utils import token_required
 
-api = Namespace("auth", description="")
+api = Namespace("profiles", description="")
 
 serializer = api.model("profile", {
-    "id": fields.String(description="", attribute="", readonly=True)
-    "first_name": fields.String(description="", attribute=""),
-    "middle_names": fields.String(description="", attribute=""),
-    "last_name": fields.String(description="", attribute=""),
-    "date_of_birth": fields.Date(description="", attribute=""),
-    "phone_number": fields.String(description="", attribute=""),
-    "citizenship": fields.String(description="", attribute=""),
-    "bvn": fields.Integer(description="", attribute=""),
-    "nin": fields.Integer(description="", attribute=""),
-    "notifications": fields.Nested(description="", attribute=""),
-    "devices": fields.Nested(description="", attribute=""),
-    "stores": fields.Nested(description="", attribute=""),
+    "id": fields.String(description="Profile ID", attribute="public_id", readonly=True),
+    "first_name": fields.String(description="First name of User"),
+    "middle_names": fields.String(description="Middle name of User"),
+    "last_name": fields.String(description="Last name of User"),
+    "date_of_birth": fields.Date(description="User's date of birth"),
+    "phone_number": fields.String(description="User's phone number"),
+    "citizenship": fields.String(description="User's citizenship"),
+    "bvn": fields.Integer(description="User's Identification using BVN"),
+    "nin": fields.Integer(description="User's Identification using NIN"),
+    # "notifications": fields.Nested(description="", attribute=""),
+    # "devices": fields.Nested(description="", attribute=""),
+    # "stores": fields.Nested(description="", attribute=""),
 })
 
 parser = reqparse.RequestParser()
-parser.add_argument("first_name", type=str, help="", required=False, location="")
-parser.add_argument("middle_names", type=str, help="", required=False, location="")
-parser.add_argument("last_name", type=str, help="", required=False, location="")
-parser.add_argument("date_of_birth", type=datetime, help="", required=False, location="")
-parser.add_argument("phone_number", type=str, help="", required=False, location="")
-parser.add_argument("citizenship", type=str, help="", required=False, location="")
-parser.add_argument("bvn", type=str, help="", required=False, location="")
-parser.add_argument("nin", type=str, help="", required=False, location="")
+parser.add_argument("first_name", type=str, help="", required=False, location="form")
+parser.add_argument("middle_names", type=str, help="", required=False, location="form")
+parser.add_argument("last_name", type=str, help="", required=False, location="form")
+parser.add_argument("date_of_birth", type=datetime, help="", required=False, location="form")
+parser.add_argument("phone_number", type=str, help="", required=False, location="form")
+parser.add_argument("citizenship", type=str, help="", required=False, location="form")
+parser.add_argument("bvn", type=str, help="", required=False, location="form")
+parser.add_argument("nin", type=str, help="", required=False, location="form")
 # parser.add_argument("", type=str, help="", required=False, location="")
 
+@api.route("/")
 class ProfileResource(Resource):
     
     @api.doc(description="Fetch current User Profile")
-    @api.response(200, "User Successfully fetched")
+    @api.response(200, "User Successfully fetched", model=serializer)
     @token_required
     def get(self, user):
         # user = user.query.filter_by(public_id=id).first_or_404("User Not Found")
@@ -69,9 +70,9 @@ class ProfileResource(Resource):
 
     #     return api.marshal(profile, serializer, skip_none=True), 201
 
-    @api.doc()
-    @api.response()
-    @api.expect(parser=parser, validate=True)
+    @api.doc(description="Update a User Profile")
+    @api.response(200, "Successfully updated User Profile", model=serializer)
+    @api.expect(parser, validate=True)
     @token_required
     def patch(self, user):
         # user = User.query.filter_by(public_id=id).first_or_404("User Not Found. Check API token")
@@ -90,7 +91,7 @@ class ProfileResource(Resource):
         
         return api.marshal(profile, serializer, skip_none=True), 200
     
-    @api.doc()
+    @api.doc(description="Delete a User Profile")
     @api.response(204, "Successfully Deleted Profile")
     @token_required
     def delete(self, user):
