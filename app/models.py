@@ -1,6 +1,9 @@
 from . import db, r, mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from uuid import uuid4
+
+make_uuid = (lambda: uuid4().hex.upper()[0:15])
 
 
 #class Base:
@@ -10,7 +13,7 @@ from datetime import datetime
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    public_id = db.Column(db.String(15))
+    public_id = db.Column(db.String(15), default=make_uuid)
     email = db.Column(db.String(80))
     password = db.Column(db.String(80))
     used_passwords = db.relationship("Password",backref="user", lazy=True)
@@ -20,7 +23,12 @@ class User(db.Model):
     def __init__(self, **kwargs):
         password = kwargs["password"]
         self.set_password(password)
-        self.profile = Profile()
+        phone_number = kwargs.get("phone_number")
+        if phone_number:
+            kwargs.pop("phone_number")
+            self.profile = Profile(phone_number=phone_number)
+        else:
+            self.profile = Profile()
 
         remainder = {key:val for key,val in kwargs.items() if key != "password"}
         super().__init__(**remainder)
@@ -59,6 +67,7 @@ class User(db.Model):
     
 class Profile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(15), default=make_uuid)
     first_name = db.Column(db.String(20))
     middle_names = db.Column(db.String(40))
     last_name = db.Column(db.String(20))
@@ -148,6 +157,7 @@ class GoogleAccount(db.Model):
 
 class NairaWallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(15), default=make_uuid)
     profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
 
     def __repr__(self):
@@ -155,6 +165,7 @@ class NairaWallet(db.Model):
     
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(15), default=make_uuid)
     profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
     viewed = db.Column(db.Boolean, default=False)
 
@@ -163,6 +174,7 @@ class Notification(db.Model):
     
 class Device(db.Model): 
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(15), default=make_uuid)
     name = db.Column(db.String(50))
     ip_address = db.Column(db.String(15))
     profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
@@ -172,6 +184,7 @@ class Device(db.Model):
 
 class Store(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(15), default=make_uuid)
     name = db.Column(db.String(50))
     items = db.relationship("Item", back_populates="store", lazy="dynamic")
     profile_id = db.Column(db.Integer, db.ForeignKey("profile.id"))
@@ -181,6 +194,7 @@ class Store(db.Model):
     
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(15), default=make_uuid)
     name = db.Column(db.String(60))
     price = db.Column(db.Integer)
     store = db.relationship("Store", back_populates="items")

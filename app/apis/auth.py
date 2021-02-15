@@ -4,6 +4,7 @@ from random import randrange
 
 from app.models import User, r
 from app.utils import token_required
+from app import mail, Message
 
 api = Namespace("auth", description="")
 
@@ -14,6 +15,7 @@ token_serializer = api.model("token", {
 
 create_token_parser = reqparse.RequestParser()
 create_token_parser.add_argument("email", type=str, help="Email of User", location="form")
+create_token_parser.add_argument("password", type=str, help="Password of User", location="form")
 # create_token_parser.add_argument()
 
 refresh_token_parser = reqparse.RequestParser()
@@ -90,7 +92,11 @@ class Token(Resource):
             api.abort(401, "Invalid credentials")
 
         otp = str(randrange(999999)).zfill(6)
-        user.send_email("OTP to complete registration", otp)
+        # user.send_email("OTP to complete registration", f"This is the OTP {otp}")
+        msg = Message("OTP for login", recipients=[user.email])
+        msg.body = f"This is the OTP {otp}"
+        mail.send(msg)
+        
         r_otp = r.set(f"user:{user.public_id}-otp", otp, ex=900, nx=True)
 
         return {

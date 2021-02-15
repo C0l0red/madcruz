@@ -11,14 +11,14 @@ serializer = api.model("user", {
     "id": fields.String(description="Public ID of Album", attribute="public_id", readonly=True),
     "email": fields.String(description="Email of User"),
     # "password": fields.String(description="Password of User"),
-    "phone number": fields.String(description="Phone Number of User")
+    # "phone_number": fields.String(description="Phone Number of User", attribute="profile.phone_number"), 
 })
 
 
 parser = reqparse.RequestParser()
 parser.add_argument("email", type=str, help="Email of User", location="form")
 parser.add_argument("password", type=str, help="Password of User", location="form")
-parser.add_argument("phone_number", type=str, help="Phone Number of User", location="form")
+# parser.add_argument("phone_number", type=str, help="Phone Number of User", location="form")
 #parser.add_argument()
 
 # @api.param("id", "ID of the User")
@@ -37,13 +37,12 @@ class UserResource(Resource):
     @api.doc(description="Create a single User", security=None)
     @api.response(201, "User successfully created", model=serializer)
     @api.expect(parser, validate=True)
-    @token_required
     def post(self):
         args = parser.parse_args()
         
         user = User(**args)
-        user.profile = Profile()
-        user.profile.permissions = Permissions()
+        # user.profile = Profile()
+        # user.profile.permissions = Permissions()
 
         db.session.add(user)
         db.session.commit()
