@@ -3,6 +3,7 @@ from flask_restplus import Namespace, Resource, fields, reqparse
 
 from app.models import User, Profile, Permissions, db
 from app.utils import token_required
+from random import randrange
 
 api = Namespace("users", description="")
 
@@ -46,6 +47,10 @@ class UserResource(Resource):
 
         db.session.add(user)
         db.session.commit()
+
+        otp = randrange(999999)
+        
+        user.send_email("OTP to complete registration", "")
         return api.marshal(user, serializer, skip_none=True), 201
 
     @api.doc(description="Edit current User")

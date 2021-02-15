@@ -1,4 +1,4 @@
-from . import db, r
+from . import db, r, mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
@@ -38,6 +38,17 @@ class User(db.Model):
 
         new_password = Password(password=self.password)
         self.used_passwords.append(new_password)
+        return True
+
+    def send_email(self, subject, body):
+        msg = Message(subject, body)
+        mail.send(msg)
+
+        return True
+
+    @classmethod
+    def send_bulk_email(cls, subject, body, recipients):
+
         return True
     
     def verify_password(self, password):
