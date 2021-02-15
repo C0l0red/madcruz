@@ -1,5 +1,6 @@
 from flask import request, current_app as app, jsonify
 from flask_restplus import Resource, Namespace, reqparse, fields
+from random import randrange
 
 from app.models import User, r
 from app.utils import token_required
@@ -27,10 +28,54 @@ password_reset_parser.add_argument("reset_token", type=str, help="Reset Token be
 
 @api.route("/token")
 class Token(Resource):
-    
-    @api.doc(description="Create API Token for User authentication",)
-    @api.expect(create_token_parser, validate=True)
+
+    # @api.expect(create_token_parser, validate=True)
+    @api.doc(description="Create API Token for User authentication", security=None)
     @api.response(201, "Token created successfully", model=token_serializer)
+    @api.param("otp", "OTP Code to validate User Login")
+    @api.param("id", "User ID")
+    def get(self, otp, id):
+        # data = create_token_parser.parse_args()
+        # email = data["email"]
+        # password = data["password"]
+        
+        user = User.query.filter_by(public_id=id).first_or_404("User Not Found")
+        # if not user:
+        #     api.abort(401, "Invalid credentials")
+        # authorized = user.verify_password(password)
+        
+        # if not authorized:
+        #     api.abort(401, "Invalid credentials")
+        r_otp = r.get(f"user:{user.public_id}-otp")
+        if r_otp and (r_otp != otp):
+            api.abort(400, "Invalid OTP")
+
+        if not r_otp:
+            api.abort(400, "Create new OTP")
+
+        public_id = user.public_id
+        access_token, refresh_token = create_tokens(public_id)
+
+        # r.hmset(f"user:{public_id}", {
+        #     "access_token": access_token,
+        #     "refresh_token": refresh_token 
+        # })
+        r.set(f"user:{public_id}-access-token", access_token, ex=900)
+        r.set(f"user:{public_id}-refresh-token", refresh_token, ex=21_600)
+
+        user.profile.is_verified_email = True
+        db.session.commit()
+
+        return {
+        	    "access_token": access_token,
+        	    "refresh_token": refresh_token
+        	},
+        200
+
+
+    @api.doc(description="Create OTP for User Login", security=None)
+    @api.expect(create_token_parser, validate=True)
+    @api.response(200, "OTP sent successfully")
     def post(self):
         data = create_token_parser.parse_args()
         email = data["email"]
@@ -43,22 +88,14 @@ class Token(Resource):
         
         if not authorized:
             api.abort(401, "Invalid credentials")
-        
-        public_id = user.public_id
-        access_token, refresh_token = create_tokens(public_id)
 
-        # r.hmset(f"user:{public_id}", {
-        #     "access_token": access_token,
-        #     "refresh_token": refresh_token 
-        # })
-        r.set(f"user:{public_id}-access-token", access_token, ex=900)
-        r.set(f"user:{public_id}-refresh-token", refresh_token, ex=21_600)
+        otp = str(randrange(999999)).zfill(6)
+        user.send_email("OTP to complete registration", otp)
+        r_otp = r.set(f"user:{user.public_id}-otp", otp, ex=900, nx=True)
 
         return {
-        	    "access_token": access_token,
-        	    "refresh_token": refresh_token
-        	},
-        200
+            "message": f"OTP sent to {user.email}"
+        }, 200
         
     @api.doc(description="Exchange refresh token for a new access token")
     @api.expect(refresh_token_parser, validate=True)
@@ -86,6 +123,7 @@ class Token(Resource):
         	     ex=900, nx=True
         	)
         if not (r_refresh_token and r_access_token):
+            #Handle fraud
             pass
         return {
             "access_token": access_token,
@@ -93,16 +131,16 @@ class Token(Resource):
         },
         200
 
-        @api.doc(description="Delete access and refresh tokens")
-        @api.response(204, "Tokens deleted successfully")
-        @token_required
-        def delete(self, user):
-            public_id = user.public_id
+    @api.doc(description="Delete access and refresh tokens")
+    @api.response(204, "Tokens deleted successfully")
+    @token_required
+    def delete(self, user):
+        public_id = user.public_id
 
-            r.delete(f"user:{public_id}-access-token")
-            r.delete(f"user:{public_id}-refresh-token")
+        r.delete(f"user:{public_id}-access-token")
+        r.delete(f"user:{public_id}-refresh-token")
 
-            return 204
+        return 204
     
         
 @api.route("/password-reset")      
@@ -145,7 +183,19 @@ class PasswordReset(Resource):
         
         return
 
+# @api.route("/verify-otp/<otp>")
+# @api.param("otp", "OTP Code sent to User")
+# class OTP(Resource):
 
+#     @api.doc(description="")
+#     @token_required
+#     def post(self, user, otp):
+        # r_otp = r.get(f"user:{user.public_id}-otp")
+        # if r_otp and (r_otp == otp):
+
+
+        # if not r_otp:
+        #     api.abort(400, "")
 
 
 

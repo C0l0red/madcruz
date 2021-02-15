@@ -80,6 +80,9 @@ class Profile(db.Model):
     apple_account = db.relationship("AppleAccount", backref="profile", uselist=False, lazy="select")
     google_account = db.relationship("GoogleAccount", backref="profile", uselist=False, lazy="select")
 
+    is_verified_email = db.Column(db.Boolean, default=False)
+    is_verified_phone = db.Column(db.Boolean, default=False)
+
     def __init__(self, **kwargs):
         self.permissions = Permissions()
 

@@ -1,7 +1,7 @@
 from flask import request
 from flask_restplus import Namespace, Resource, fields, reqparse
 
-from app.models import User, Profile, Permissions, db
+from app.models import User, Profile, Permissions, db, r
 from app.utils import token_required
 from random import randrange
 
@@ -34,7 +34,7 @@ class UserResource(Resource):
         # user = User.query.filter_by(public_id=id).first_or_404(f"User with ID '{id}' not found")
         return api.marshal(user, serializer, skip_none=True), 200
     
-    @api.doc(description="Create a single User")
+    @api.doc(description="Create a single User", security=None)
     @api.response(201, "User successfully created", model=serializer)
     @api.expect(parser, validate=True)
     @token_required
@@ -48,9 +48,13 @@ class UserResource(Resource):
         db.session.add(user)
         db.session.commit()
 
-        otp = randrange(999999)
-        
-        user.send_email("OTP to complete registration", "")
+        # otp = str(randrange(999999)).zfill(6)
+        # user.send_email("OTP to complete registration", otp)
+        # r_otp = r.set(f"user:{user.public_id}-otp", otp, ex=900, nx=True)
+
+        # return {
+        #     "message": f"OTP sent to {user.email}"
+        # }, 201
         return api.marshal(user, serializer, skip_none=True), 201
 
     @api.doc(description="Edit current User")
